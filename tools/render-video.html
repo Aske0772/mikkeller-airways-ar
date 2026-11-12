@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>Render AR-video til Web-AR.Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&display=swap" rel="stylesheet">
+<style>body{margin:12px;font:13px system-ui;background:#333;color:#eee} canvas{max-width:720px;display:block}</style>
+</head>
+<body>
+<p>Tegner AR-animationen billede for billede på magenta baggrund (chroma key) til Web-AR.Studio. <span id="st"></span></p>
+<canvas id="out"></canvas>
+<script type="module">
+import { createScene, VIEW } from "../js/scene.js";
+import { canvasLayer } from "../js/canvas-layer.js";
+
+// Videoens udsnit i trykpixels: hele bredden af AR-fladen og ned til lige under trykket.
+export const CROP = { x: -400, y: -600, w: 2400, h: 1850 };
+const OUT_W = 1440;
+const SCALE = OUT_W / CROP.w;
+const OUT_H = Math.round(CROP.h * SCALE); // 1110
+const KEY = "#FF00FF";
+const FPS = 30;
+
+await document.fonts.load("40px 'Bowlby One'");
+const holder = document.createElement("div");
+const scene = createScene(holder, { mode: "ar", base: true });
+const res = Math.round(VIEW.w * SCALE); // 1440
+const layer = canvasLayer(scene.layers.map((L) => L.svg), { size: res, res });
+const out = document.getElementById("out");
+out.width = OUT_W;
+out.height = OUT_H;
+const ctx = out.getContext("2d");
+
+function frame(t) {
+  scene.update(t);
+  layer.draw();
+  ctx.fillStyle = KEY;
+  ctx.fillRect(0, 0, OUT_W, OUT_H);
+  ctx.drawImage(layer.canvas, (VIEW.x - CROP.x) * SCALE, (VIEW.y - CROP.y) * SCALE);
+}
+
+async function save(i) {
+  const blob = await new Promise((r) => out.toBlob(r, "image/png"));
+  const name = "web-ar-studio/frames/f" + String(i).padStart(4, "0") + ".png";
+  const res = await fetch("/save?file=" + encodeURIComponent(name), { method: "POST", body: blob });
+  if (!res.ok) throw new Error("save failed " + i);
+}
+
+window.renderRange = async (from, to) => {
+  for (let i = from; i < to; i++) {
+    frame(i / FPS);
+    await save(i);
+    document.getElementById("st").textContent = "billede " + i;
+  }
+  return "done " + from + "-" + to;
+};
+window.preview = (t) => { frame(t); return "ok"; };
+window.info = { OUT_W, OUT_H, FPS };
+window.__ready = true;
+</script>
+</body>
+</html>

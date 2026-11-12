@@ -26,7 +26,7 @@ http
     if (req.method === "POST" && url.pathname === "/save") {
       const rel = url.searchParams.get("file") || "";
       const target = path.resolve(ROOT, rel);
-      if (!target.startsWith(ROOT + path.sep) || !/^(print|assets\/target)\//.test(rel)) {
+      if (!target.startsWith(ROOT + path.sep) || !/^(print|assets\/target|web-ar-studio\/frames)\//.test(rel)) {
         res.writeHead(400).end("bad path");
         return;
       }
