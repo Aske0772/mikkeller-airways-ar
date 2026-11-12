@@ -2,7 +2,9 @@
 
 Hi-fi demo af t-shirten, hvor **selve trykket er AR-triggeren**. Husene får farve, regnen falder ud over t-shirten, skiltet bladrer destinationer, og flyet letter.
 
-**Forløbet:** Brugeren peger telefonens almindelige kamera på t-shirten. QR-koden, der er malet på ladcyklens kasse, giver det velkendte link-pop-op. Et tryk åbner siden direkte i kameraet, og siden genkender hele tegningen og starter AR'en oven på trykket.
+**Forløbet:** Brugeren peger telefonens almindelige kamera på t-shirten. QR-koden, der er malet på ladcyklens kasse, åbner Web-AR.Studio-versionen: på iPhone som App Clip (et kort nedefra, ingen app og ingen Safari), på Android i browseren. Kameraet genkender hele tegningen og starter AR'en oven på trykket. Se `web-ar-studio/README.md`.
+
+Den egne WebAR-version i denne mappe (med lag i 3D) åbnes via linket nedenfor, ikke længere via QR-koden.
 
 Hvorfor en QR-kode i trykket: iPhone- og Android-kameraet genkender kun QR-koder, ikke almindelige tegninger. Koden starter siden; selve AR'en følger tegningen.
 

@@ -4,7 +4,7 @@ Samme København-AR, bygget i Web-AR.Studio, så den på iPhone åbner som App C
 
 - Projekt: "AR project" på platform.web-ar.studio (id 547046), placering "AR Viewer Lite" (App Clip på iOS, web på Android).
 - Link: https://projects.web-ar.studio/3fc52adafb
-- QR-kode til linket: `qr-web-ar-studio.png`
+- QR-kode til linket: `qr-web-ar-studio.png`. Samme link er malet på ladcyklens kasse i trykket, så selve t-shirten åbner App Clip'en.
 
 ## Filer
 
