@@ -19,7 +19,7 @@ addEventListener("resize", fit);
 fit();
 
 // ---------- QR-koder til live-AR ----------
-const liveURL = new URL("live.html", location.href).href;
+const liveURL = new URL("./", location.href).href; // AR-kameraet ligger på sidens forside
 $("#liveLink").href = liveURL;
 if (window.QRCode) {
   new QRCode($("#liveQr"), { text: liveURL, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });

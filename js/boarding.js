@@ -1,5 +1,5 @@
 // Boardingkort og Mikkeller-pas – vises når AR-scenen er færdig.
-// Bruges både i prototypen (index.html) og i live-AR (live.html).
+// Bruges i prototypen (prototype.html).
 
 const BASE = new URL("..", import.meta.url).href; // mappen ar-demo-koebenhavn/
 

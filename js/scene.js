@@ -165,6 +165,43 @@ function bezier(p0, p1, p2, p3, u) {
   ];
 }
 
+// QR-kode til https://aske0772.github.io/mikkeller-airways-ar/ (version 4, fejlkorrektion M), lavet med segno.
+const QR_ROWS = [
+  "111111100000001100010101101111111",
+  "100000100001000101000101001000001",
+  "101110100000101011000001101011101",
+  "101110100010010001000011001011101",
+  "101110100110100010010001101011101",
+  "100000101010101000101010101000001",
+  "111111101010101010101010101111111",
+  "000000000101101001111100000000000",
+  "100101101010111110010111010100000",
+  "110011010100000010001110011100011",
+  "001010100100100011011000010110101",
+  "111010011100001111010110101011011",
+  "100010110001100100000100011001010",
+  "111111011011010111000100111010111",
+  "000000111110010000101101011111110",
+  "011000001010001101010111001100010",
+  "111101111110010001110101101010010",
+  "000100011100011010000111110101010",
+  "011101111001110000100110001000111",
+  "001111001110101001100110001100010",
+  "110000111010100111110110010000010",
+  "011101011100110110111100101000011",
+  "110010110010000101001100011101101",
+  "010100010110111010000100001011011",
+  "101010110111010111011110111111001",
+  "000000001000011010011011100011001",
+  "111111100101100000001100101011110",
+  "100000101110110010001110100010001",
+  "101110100001000110011000111111010",
+  "101110101010101101011001101010000",
+  "101110100110001000101100110010001",
+  "100000100101110111100111110001000",
+  "111111101101010010000100111011010",
+];
+
 let instance = 0;
 
 // ---------- scenen ----------
@@ -422,10 +459,43 @@ export function createScene(container, { mode = "ar", base = true } = {}) {
     anim.flap = { g: flap, text: flapText, cx: 1435, cy: 563 };
 
     // Tekst under motivet
-    const city = E("text", { x: 800, y: 1116, "font-family": FONT, "font-size": 132, fill: INK, "text-anchor": "middle", "letter-spacing": 6, rotate: "-3 2 -2 3 -1 2 -3 1 2" }, g);
+    const city = E("text", { x: 66, y: 1110, "font-family": FONT, "font-size": 122, fill: INK, "letter-spacing": 5, rotate: "-3 2 -2 3 -1 2 -3 1 2" }, g);
     city.textContent = "KØBENHAVN";
-    const sub = E("text", { x: 800, y: 1176, "font-family": FONT, "font-size": 36, fill: INK, "text-anchor": "middle", "letter-spacing": 7 }, g);
+    const sub = E("text", { x: 72, y: 1172, "font-family": FONT, "font-size": 31, fill: INK, "letter-spacing": 6 }, g);
     sub.textContent = "MIKKELLER AIRWAYS · AFGANG CPH";
+  }
+
+  // ===== Boardingkort med QR-kode (i trykket) =====
+  // iPhone- og Android-kameraet genkender kun QR-koder, ikke tegninger. Koden her giver
+  // telefonens eget kamera et link til AR-siden; selve AR'en genkender derefter hele trykket.
+  // Koden står helt stille i alle lag og tegnes uden håndrystelse, så den altid kan scannes.
+  {
+    const g = layers.back.g;
+    E("path", { d: hand([[1128, 1000], [1590, 1000], [1590, 1196], [1128, 1196]], { step: 60, amt: 0.6 }), ...SHAPE, "stroke-width": 7 }, g);
+    E("path", { d: "M1378,1012 V1186", fill: "none", stroke: INK, "stroke-width": 5, "stroke-dasharray": "12 10", "stroke-linecap": "round" }, g);
+    const t1 = E("text", { x: 1252, y: 1072, "font-family": FONT, "font-size": 50, fill: INK, "text-anchor": "middle" }, g);
+    t1.textContent = "SCAN";
+    const t2 = E("text", { x: 1252, y: 1124, "font-family": FONT, "font-size": 50, fill: INK, "text-anchor": "middle" }, g);
+    t2.textContent = "& FLY";
+    const t3 = E("text", { x: 1252, y: 1168, "font-family": FONT, "font-size": 21, fill: INK, "text-anchor": "middle", "letter-spacing": 2 }, g);
+    t3.textContent = "MK 001 · CPH";
+    const M = QR_ROWS.length;
+    const mod = 5.2;
+    const x0 = 1396;
+    const y0 = 1098 - (M * mod) / 2;
+    let d = "";
+    QR_ROWS.forEach((row, r) => {
+      let c = 0;
+      while (c < M) {
+        if (row[c] === "1") {
+          let e = c;
+          while (e < M && row[e] === "1") e++;
+          d += `M${f(x0 + c * mod)},${f(y0 + r * mod)}h${f((e - c) * mod)}v${mod}h${f(-(e - c) * mod)}Z`;
+          c = e;
+        } else c++;
+      }
+    });
+    E("path", { d, fill: INK, "shape-rendering": "crispEdges" }, g);
   }
 
   // ===== LAG: rider (ladcykel, kuffert, øl og manden i regntøj) =====

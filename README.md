@@ -1,13 +1,20 @@
 # Mikkeller Airways – AR-t-shirt, København
 
-Hi-fi demo af t-shirten, hvor **selve trykket er AR-triggeren**. Kameraet genkender tegningen og vækker den til live: husene får farve, regnen falder ud over t-shirten, skiltet bladrer destinationer, og flyet letter. QR-koden i nakkemærket åbner bare kamerasiden første gang.
+Hi-fi demo af t-shirten, hvor **selve trykket er AR-triggeren**. Husene får farve, regnen falder ud over t-shirten, skiltet bladrer destinationer, og flyet letter.
+
+**Forløbet:** Brugeren peger telefonens almindelige kamera på t-shirten. QR-koden i trykkets boardingkort ("SCAN & FLY") giver det velkendte link-pop-op. Et tryk åbner siden direkte i kameraet, og siden genkender hele tegningen og starter AR'en oven på trykket.
+
+Hvorfor en QR-kode i trykket: iPhone- og Android-kameraet genkender kun QR-koder, ikke almindelige tegninger. Koden starter siden; selve AR'en følger tegningen.
+
+Links: AR-kameraet er https://aske0772.github.io/mikkeller-airways-ar/ og prototypen er https://aske0772.github.io/mikkeller-airways-ar/prototype.html
 
 ## Find filerne
 
 | Fil | Hvad |
 | --- | --- |
-| `live.html` | **Selve AR'en.** Åbner direkte i kameraet. Peg på trykket. Skal åbnes via https (eller localhost). |
-| `index.html` | Prototypen til præsentation: hele forløbet på en telefon (mærke → kamera → AR → boardingkort → pas). Virker uden kamera. |
+| `index.html` | **Selve AR'en**, sidens forside og det QR-koden peger på. Åbner direkte i kameraet. Skal åbnes via https (eller localhost). |
+| `prototype.html` | Prototypen til præsentation: hele forløbet på en telefon (mærke → kamera → AR → boardingkort → pas). Virker uden kamera. Trin 1 viser stadig den gamle idé med QR i nakkemærket. |
+| `live.html` | Gammel adresse; sender videre til forsiden. |
 | `print/koebenhavn-print-4800px.png` | Trykfilen i høj opløsning (gennemsigtig baggrund). Til t-shirt eller papir-test. |
 | `print/koebenhavn-print.svg` | Samme tryk som vektor. |
 | `print/koebenhavn-ar-maal.png` | Det billede, kameraet er lært at genkende. |
@@ -21,14 +28,15 @@ Hi-fi demo af t-shirten, hvor **selve trykket er AR-triggeren**. Kameraet genken
 
 1. Print `print/koebenhavn-print-4800px.png` på A4 på tværs, ca. 20–25 cm bredt, på mat papir.
 2. Tape det fladt på brystet af en t-shirt.
-3. Åbn `live.html` på telefonen via https-linket, og giv lov til kameraet.
+3. Åbn telefonens kamera, peg på QR-koden i boardingkortet nederst til højre, og tryk på linket. Giv siden lov til at bruge kameraet.
 4. Hold telefonen 30–60 cm fra trykket i godt lys. Tryk på **Lyd** for at få regn og fly med.
 
 ## Hvad er testet
 
 - Genkendelse (`tools/tracking-test.html`): trykket blev fundet i 5 af 5 testbilleder (lige på, drejet, skråt, langt væk, sløret med støj). Et andet motiv (Tokyo-stemplet) blev korrekt ikke genkendt.
 - Prototypen er gennemklikket i browseren.
-- `live.html` med et rigtigt kamera på en telefon er **ikke testet endnu**.
+- QR-koden i trykket er afkodet til sidens adresse ved fem størrelser, ned til 56 pixels bred.
+- AR-kameraet med et rigtigt kamera på en telefon er **ikke testet endnu**.
 
 ## Kør lokalt
 
