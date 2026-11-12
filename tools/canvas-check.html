@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>Canvas mod SVG</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; padding: 12px; background: #ddd; font: 13px system-ui; }
+  .row { display: flex; gap: 12px; }
+  .box { flex: none; width: 600px; height: 600px; background: #f4f1ea; position: relative; overflow: hidden; outline: 1px solid #0003; }
+  .box > div { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<p>Venstre: SVG. Højre: canvas. Tid: <span id="tv"></span></p>
+<div class="row"><div class="box" id="a"></div><div class="box" id="b"></div></div>
+<script type="module">
+import { createScene } from "../js/scene.js";
+import { canvasLayer } from "../js/canvas-layer.js";
+await document.fonts.load("40px 'Bowlby One'");
+const A = createScene(document.getElementById("a"), { mode: "ar", base: true });
+A.root.style.width = A.root.style.height = "100%";
+const holder = document.createElement("div");
+const B = createScene(holder, { mode: "ar", base: true });
+const layers = B.layers.map((L) => canvasLayer([L.svg], { size: 600, res: 1200 }));
+const wrap = document.getElementById("b");
+layers.forEach((l) => { l.canvas.style.position = "absolute"; l.canvas.style.left = "0"; l.canvas.style.top = "0"; wrap.appendChild(l.canvas); });
+window.show = (t) => {
+  A.update(t); B.update(t);
+  const t0 = performance.now();
+  layers.forEach((l) => l.draw());
+  const ms = performance.now() - t0;
+  document.getElementById("tv").textContent = t.toFixed(2) + " s · canvas-tegning " + ms.toFixed(1) + " ms";
+  return ms;
+};
+window.show(0);
+window.__ready = true;
+</script>
+</body>
+</html>

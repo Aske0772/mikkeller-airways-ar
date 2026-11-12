@@ -20,7 +20,8 @@ Links: AR-kameraet er https://aske0772.github.io/mikkeller-airways-ar/ og protot
 | `print/koebenhavn-ar-maal.png` | Det billede, kameraet er lært at genkende. |
 | `assets/target/koebenhavn.mind` | AR-målet (MindAR), lavet ud fra `koebenhavn-ar-maal.png`. |
 | `js/scene.js` | Tegningen og animationen. Både trykket og AR-lagene tegnes herfra, så de passer præcist sammen. |
-| `js/live.js` | Kamera og billedgenkendelse (MindAR 1.2.5). |
+| `js/live.js` | Kamera og billedgenkendelse (MindAR 1.2.5). Testtrin: `?trin=1` kun kamera, `?trin=2` genkendelse uden AR, `?trin=3` fladt billede på trykket. `?let` tvinger ét fladt lag. |
+| `js/canvas-layer.js` | Tegner AR-lagene på lærreder i stedet for som SVG. iPhone-Safari gik ned af hukommelsesmangel med SVG-lagene i 3D. |
 | `js/prototype.js`, `js/boarding.js` | Prototypen, boardingkortet og passet. |
 | `tools/` | Lokal server, eksport af trykfil og AR-mål, og genkendelsestesten. |
 

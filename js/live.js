@@ -4,6 +4,7 @@
 import { CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
 import { MindARThree } from "mindar-image-three";
 import { createScene, PRINT, VIEW, CUES } from "./scene.js";
+import { canvasLayer } from "./canvas-layer.js";
 
 const $ = (s) => document.querySelector(s);
 const PX = 1000 / PRINT.w; // MindAR: målbilledets bredde = 1000 CSS-px
@@ -132,14 +133,16 @@ async function start() {
     holder.style.cssText = `position:absolute;left:-99999px;width:${ELEM_PX}px;height:${ELEM_PX}px`;
     document.body.appendChild(holder);
     scene = createScene(holder, { mode: "ar", base: true });
+    // Hvert lag tegnes på et lærred med fast størrelse (ikke som SVG), så Safari ikke
+    // laver kæmpestore grafikflader af det i 3D.
+    const res = Math.round(ELEM_PX * Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : 2));
     const makeObj = (svgs, depth) => {
-      const wrap = document.createElement("div");
-      wrap.style.cssText = `width:${ELEM_PX}px;height:${ELEM_PX}px;position:relative;pointer-events:none;overflow:visible`;
-      svgs.forEach((svg) => wrap.appendChild(svg));
-      const obj = new CSS3DObject(wrap);
+      const layer = canvasLayer(svgs, { size: ELEM_PX, res });
+      layer.draw();
+      const obj = new CSS3DObject(layer.canvas);
       obj.scale.set(UP, UP, 1);
       anchor.group.add(obj);
-      objects.push({ obj, depth });
+      objects.push({ obj, depth, layer });
     };
     if (STAGE === 2) {
       // kun genkendelse, ingen AR-grafik
@@ -198,7 +201,11 @@ function loop(now) {
   clock.last = now;
   if (clock.tracking) clock.t += dt;
   const t = clock.t;
-  if (clock.tracking && objects.length) scene.update(t); // tegn kun, når trykket er i billedet
+  if (clock.tracking && objects.length) {
+    // tegn kun, når trykket er i billedet
+    scene.update(t);
+    objects.forEach((o) => o.layer && o.layer.draw());
+  }
   const d = scene.depthAt(t);
   objects.forEach(({ obj, depth }) => (obj.position.z = depth * PX * d));
 
