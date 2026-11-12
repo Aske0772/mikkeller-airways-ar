@@ -3,7 +3,7 @@
 // løber tør for hukommelse. Et lærred har en fast størrelse, som vi selv bestemmer.
 // Rendereren forstår netop det, scene.js bruger: g, path, rect, circle, ellipse, text,
 // transform, clip-path, opacity, fill, stroke, streg-stil og stiplede linjer.
-import { VIEW } from "./scene.js";
+import { VIEW } from "./kit.js";
 
 const INHERIT = ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-dasharray", "font-family", "font-size", "text-anchor", "letter-spacing"];
 const BASE_STYLE = { fill: "#000", stroke: "none", "stroke-width": "1", "stroke-linecap": "butt", "stroke-linejoin": "miter", "stroke-dasharray": "none", "font-family": "sans-serif", "font-size": "16", "text-anchor": "start", "letter-spacing": "0" };

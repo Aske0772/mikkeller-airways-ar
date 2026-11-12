@@ -5,6 +5,7 @@ import { CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
 import { MindARThree } from "mindar-image-three";
 import { createScene, PRINT, VIEW, CUES } from "./scene.js";
 import { canvasLayer } from "./canvas-layer.js";
+import { CITY } from "./city.js";
 
 const $ = (s) => document.querySelector(s);
 const PX = 1000 / PRINT.w; // MindAR: målbilledets bredde = 1000 CSS-px
@@ -115,7 +116,7 @@ async function start() {
   if (!mindar) {
     mindar = new MindARThree({
       container: $("#ar"),
-      imageTargetSrc: "assets/target/koebenhavn.mind",
+      imageTargetSrc: `assets/target/${CITY.slug}.mind`,
       uiLoading: "no",
       uiScanning: "no",
       uiError: "no",
@@ -148,7 +149,7 @@ async function start() {
       // kun genkendelse, ingen AR-grafik
     } else if (STAGE === 3) {
       const img = document.createElement("img");
-      img.src = "print/koebenhavn-ar-maal.png";
+      img.src = `print/${CITY.slug}-ar-maal.png`;
       img.style.cssText = `position:absolute;left:${(ELEM_PX * 400) / 2400}px;top:${(ELEM_PX * 600) / 2400}px;width:${(ELEM_PX * 1600) / 2400}px;opacity:0.85;outline:6px solid #F5E14B`;
       const wrap = document.createElement("div");
       wrap.style.cssText = `width:${ELEM_PX}px;height:${ELEM_PX}px;position:relative`;

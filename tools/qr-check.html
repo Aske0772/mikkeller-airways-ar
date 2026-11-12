@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>QR-tjek</title>
+<style>body{margin:16px;font:14px system-ui;background:#eee} #log{white-space:pre-wrap;font-family:ui-monospace,monospace}</style>
+</head>
+<body>
+<h1>Kan QR-koden i trykket læses?</h1>
+<p>Afkoder QR-koden i trykfilen ved flere størrelser, drejet og sløret, og tjekker at den er præcis byens App Clip-link (CITY.appClipUrl).</p>
+<div id="log"></div>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script type="module">
+import { CITY } from "../js/city.js";
+const log = (m) => (document.getElementById("log").textContent += m + "\n");
+const want = CITY.appClipUrl;
+const img = new Image();
+img.src = `../print/${CITY.slug}-print-4800px.png?` + Date.now();
+await img.decode();
+const results = [];
+function test(name, w, rot = 0, blur = 0) {
+  const h = Math.round(w * 0.75);
+  const c = document.createElement("canvas");
+  c.width = w + 100; c.height = h + 100;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  x.translate(c.width / 2, c.height / 2); x.rotate(rot);
+  if (blur) x.filter = `blur(${blur}px)`;
+  x.drawImage(img, -w / 2, -h / 2, w, h);
+  const r = window.jsQR(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+  const res = !r ? "IKKE LÆST" : r.data === want ? "KORREKT" : "FORKERT LINK";
+  results.push({ name, res });
+  log(`${res.padEnd(12)} ${name}`);
+}
+for (const w of [1600, 1000, 800, 640, 560]) test(`${w} px bred`, w);
+test("drejet 9°", 900, 0.15);
+test("drejet -11°, let sløret", 900, -0.2, 0.6);
+const ok = results.filter((r) => r.res === "KORREKT").length;
+log(`\n${ok} af ${results.length} korrekte. ${ok >= 5 ? "OK til test på telefon." : "For svag: gør QR'en større eller giv den mere hvid luft."}`);
+window.__qr = { ok, total: results.length, results };
+</script>
+</body>
+</html>

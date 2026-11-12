@@ -5,27 +5,13 @@
 // Alt er en ren funktion af tiden t (sekunder efter at trykket er fundet), så scenen kan
 // pauses, genstartes og bruges ens i prototypen, i live-AR og i eksporten af trykfilen.
 
-const NS = "http://www.w3.org/2000/svg";
-
-// Farver fra mikkeller-colors/palette.json (version 5).
-export const INK = "#010103";
-export const WHITE = "#FFFFFF";
-export const BRAND = {
-  red: "#DA3A35",
-  yellow: "#F5E14B",
-  blue: "#3584BA",
-  peach: "#F0B7AD",
-  moss: "#357C4F",
-  beer: "#ECAE0A",
-  mauve: "#CFB5BC",
-  brown: "#8F5C35",
-  paper: "#EEE5D2",
-  evening: "#0F0F54",
-};
-
-// Trykkets tegneflade. AR-lagene er større, så regn, sky og fly kan gå ud over t-shirten.
-export const PRINT = { w: 1600, h: 1200 };
-export const VIEW = { x: -400, y: -600, w: 2400, h: 2400 };
+import {
+  INK, WHITE, BRAND, PRINT, VIEW, FONT, clamp01, ease, easeOut, f, rng, smooth, hand, ellipsePts, mix, E,
+  LINE, SHAPE, SOLID, ik, bezier, resetSeed, makeLayers, drawQR,
+} from "./kit.js";
+import { QR_ROWS } from "./qr-rows.js";
+export { INK, WHITE, BRAND, PRINT, VIEW } from "./kit.js";
+export { printSVGString } from "./kit.js";
 
 // Dybde i "trykpixels" over stoffet, når lagene er foldet helt ud.
 export const LAYERS = [
@@ -47,166 +33,6 @@ export const CUES = {
   end: 10.2, // boardingkortet er klar
 };
 const DESTS = ["CPH", "TYO", "LON", "PAR", "BJS", "VERDEN"];
-const FONT = "'Bowlby One', 'Arial Black', sans-serif";
-
-// ---------- små værktøjer ----------
-const clamp01 = (v) => Math.max(0, Math.min(1, v));
-const ease = (v) => {
-  v = clamp01(v);
-  return v * v * (3 - 2 * v);
-};
-const easeOut = (v) => 1 - Math.pow(1 - clamp01(v), 3);
-const f = (n) => Math.round(n * 10) / 10;
-
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function densify(pts, step, closed) {
-  const out = [];
-  const n = pts.length;
-  const m = closed ? n : n - 1;
-  for (let i = 0; i < m; i++) {
-    const a = pts[i];
-    const b = pts[(i + 1) % n];
-    const k = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / step));
-    for (let j = 0; j < k; j++) out.push([a[0] + ((b[0] - a[0]) * j) / k, a[1] + ((b[1] - a[1]) * j) / k]);
-  }
-  if (!closed) out.push(pts[n - 1]);
-  return out;
-}
-
-function smooth(pts, closed) {
-  const n = pts.length;
-  const P = (i) => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
-  let d = `M${f(P(0)[0])},${f(P(0)[1])}`;
-  const m = closed ? n : n - 1;
-  for (let i = 0; i < m; i++) {
-    const p0 = P(i - 1);
-    const p1 = P(i);
-    const p2 = P(i + 1);
-    const p3 = P(i + 2);
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-    d += `C${f(c1[0])},${f(c1[1])} ${f(c2[0])},${f(c2[1])} ${f(p2[0])},${f(p2[1])}`;
-  }
-  return closed ? d + "Z" : d;
-}
-
-// Håndtegnet linje: tæt punktrække med lidt rystelse, glattet ud.
-let seedCounter = 11;
-function hand(pts, { closed = true, step = 38, amt = 2.4, seed } = {}) {
-  const r = rng(seed ?? seedCounter++);
-  const dense = step ? densify(pts, step, closed) : pts;
-  return smooth(
-    dense.map((p) => [p[0] + (r() - 0.5) * 2 * amt, p[1] + (r() - 0.5) * 2 * amt]),
-    closed
-  );
-}
-
-function ellipsePts(cx, cy, rx, ry, n = 14, rot = 0, wob = 0, seed = 1) {
-  const r = rng(seed);
-  const pts = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const k = 1 + (r() - 0.5) * wob;
-    const x = Math.cos(a) * rx * k;
-    const y = Math.sin(a) * ry * k;
-    pts.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]);
-  }
-  return pts;
-}
-
-function hexToRgb(h) {
-  const n = parseInt(h.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-function mix(a, b, u) {
-  const A = hexToRgb(a);
-  const B = hexToRgb(b);
-  const c = A.map((v, i) => Math.round(v + (B[i] - v) * clamp01(u)));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
-
-function E(tag, attrs, parent) {
-  const e = document.createElementNS(NS, tag);
-  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(e);
-  return e;
-}
-
-const SW = 9; // hovedstreg i trykpixels
-const LINE = { fill: "none", stroke: INK, "stroke-width": SW, "stroke-linecap": "round", "stroke-linejoin": "round" };
-const SHAPE = { fill: WHITE, stroke: INK, "stroke-width": SW, "stroke-linejoin": "round" };
-const SOLID = { fill: INK, stroke: INK, "stroke-width": SW, "stroke-linejoin": "round" };
-
-// Benenes vinkel ud fra hofte og fod (to led, knæet peger frem).
-function ik(h, ft, l1, l2) {
-  const dx = ft[0] - h[0];
-  const dy = ft[1] - h[1];
-  const d = Math.min(Math.hypot(dx, dy), l1 + l2 - 0.5);
-  const a = Math.atan2(dy, dx);
-  const b = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))));
-  const ang = a - b;
-  return [h[0] + l1 * Math.cos(ang), h[1] + l1 * Math.sin(ang)];
-}
-
-function bezier(p0, p1, p2, p3, u) {
-  const v = 1 - u;
-  return [
-    v * v * v * p0[0] + 3 * v * v * u * p1[0] + 3 * v * u * u * p2[0] + u * u * u * p3[0],
-    v * v * v * p0[1] + 3 * v * v * u * p1[1] + 3 * v * u * u * p2[1] + u * u * u * p3[1],
-  ];
-}
-
-// QR-kode til Web-AR.Studio-projektets App Clip-adresse (samme som platformens egen projekt-QR):
-// https://clip.webar-studio.com/3fc52adafb/?&user_id=2213874548&project_id=547046
-// På iPhone åbner den App Clip'en/AR Studio-appen, på Android web. Version 5, fejlkorrektion M, lavet med segno.
-const QR_ROWS = [
-  "1111111001010001100100010010001111111",
-  "1000001000011010100010100101001000001",
-  "1011101010100010000111100001101011101",
-  "1011101010000000011010001111001011101",
-  "1011101011010000100101010000101011101",
-  "1000001011101000001010000011101000001",
-  "1111111010101010101010101010101111111",
-  "0000000010011101001101101011100000000",
-  "1011111000111001111010111101101111100",
-  "1100110000001011000100110010010001010",
-  "1010101000100101111000101001101100111",
-  "1101010010111001001011011010110110001",
-  "1011001010110111110000111111011011111",
-  "0110010100000010001111010010100100010",
-  "1110111011011111100001101011101111011",
-  "0010110010010000101111000000100110011",
-  "1101001000001100011011101101101110111",
-  "0111110101110001100101110010010000010",
-  "1011111000111010001010000101010000011",
-  "1010010000010010100011110001001100001",
-  "1001101111000100010000111100111010100",
-  "1011000111100110001110010100100001010",
-  "0011111100100001010010100001001111011",
-  "1001100100100010001101100000100110000",
-  "1110011000100111101010101100101010111",
-  "1000100100011001001100010100010101000",
-  "1011101110111101100010101011100101111",
-  "1010000000011101001011111010011010010",
-  "1001111100100001010110100111111110010",
-  "0000000011111010101100010011100011000",
-  "1111111001010001001011001110101010101",
-  "1000001011101100101111100001100011010",
-  "1011101011101011001110100111111110110",
-  "1011101010001101101100010011011010101",
-  "1011101011000000001001101101010000111",
-  "1000001000101000100011101010101010001",
-  "1111111010111100010000000111011011111",
-];
 
 let instance = 0;
 
@@ -214,30 +40,14 @@ let instance = 0;
 export function createScene(container, { mode = "ar", base = true } = {}) {
   const AR = mode === "ar";
   const uid = "kbh" + instance++;
-  seedCounter = 11; // samme rystelse i hver kopi, så AR-laget passer præcis på trykket
+  resetSeed(11); // samme rystelse i hver kopi, så AR-laget passer præcis på trykket
 
   const root = document.createElement("div");
   root.className = "kbh-scene";
   root.style.position = "relative";
   container.appendChild(root);
 
-  const layers = {};
-  for (const L of LAYERS) {
-    const svg = E("svg", {
-      viewBox: `${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`,
-      class: "kbh-layer kbh-layer-" + L.id,
-      "data-depth": L.depth,
-    });
-    svg.style.position = "absolute";
-    svg.style.left = "0";
-    svg.style.top = "0";
-    svg.style.width = "100%";
-    svg.style.height = "100%";
-    svg.style.overflow = "visible";
-    svg.style.pointerEvents = "none";
-    root.appendChild(svg);
-    layers[L.id] = { ...L, svg, g: E("g", {}, svg), defs: E("defs", {}, svg) };
-  }
+  const layers = makeLayers(root, LAYERS, "kbh");
   const anim = {}; // referencer til de dele der bevæger sig
 
   // ===== LAG: back (baggrund, sky, fly, huse) =====
@@ -541,24 +351,7 @@ export function createScene(container, { mode = "ar", base = true } = {}) {
     // QR-koden er malet på ladkassen som et mærkat. iPhone- og Android-kameraet kan kun
     // genkende QR-koder, så det er den, der giver link-pop-op'et; AR'en genkender hele tegningen.
     // Den tegnes uden håndrystelse, så den altid kan scannes.
-    {
-      const M = QR_ROWS.length;
-      const mod = 160 / M; // koden fylder altid ca. 160 trykpixels på kassen
-      const x0 = 926 - (M * mod) / 2;
-      const y0 = 787 - (M * mod) / 2;
-      const qr = E("g", { fill: INK }, body);
-      QR_ROWS.forEach((row, r) => {
-        let c = 0;
-        while (c < M) {
-          if (row[c] === "1") {
-            let e = c;
-            while (e < M && row[e] === "1") e++;
-            E("rect", { x: f(x0 + c * mod), y: f(y0 + r * mod), width: f((e - c) * mod), height: f(mod + 0.4), rx: f(mod * 0.32) }, qr);
-            c = e;
-          } else c++;
-        }
-      });
-    }
+    drawQR(body, QR_ROWS, 926, 787, 160);
     E("path", { d: hand([[738, 698], [1126, 686]], { closed: false, step: 50, amt: 1 }), ...LINE, "stroke-width": 14 }, body);
     // styr
     E("path", { d: hand([[744, 716], [704, 644], [664, 638]], { closed: false, step: 0, amt: 0.6 }), ...LINE, "stroke-width": 12 }, body);
@@ -848,13 +641,4 @@ export function createScene(container, { mode = "ar", base = true } = {}) {
     depthAt,
     cues: CUES,
   };
-}
-
-// Samler trykket til én SVG (0 0 1600 1200) til tryk og som AR-mål.
-export function printSVGString(scene, { embedFontCSS = "" } = {}) {
-  const parts = scene.layers
-    .map((L) => L.svg.innerHTML)
-    .join("\n");
-  const style = embedFontCSS ? `<style>${embedFontCSS}</style>` : "";
-  return `<svg xmlns="${NS}" viewBox="0 0 ${PRINT.w} ${PRINT.h}" width="${PRINT.w}" height="${PRINT.h}">${style}${parts}</svg>`;
 }

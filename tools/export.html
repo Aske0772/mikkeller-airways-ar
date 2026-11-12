@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<h1>Eksport: København-tryk</h1>
+<h1>Eksport af trykfil og AR-mål</h1>
 <p>Venstre: trykket (statisk). Højre: AR-laget over hele AR-fladen. Træk i tiden for at se animationen.</p>
 <div class="row">
   <div class="box" id="printBox"></div>
@@ -31,6 +31,7 @@
 <div id="log"></div>
 <script type="module">
 import { createScene, printSVGString, PRINT, VIEW } from "../js/scene.js";
+import { CITY } from "../js/city.js";
 
 const log = (m) => (document.getElementById("log").textContent += m + "\n");
 await document.fonts.load("40px 'Bowlby One'");
@@ -92,22 +93,22 @@ async function renderPNG(svgStr, width, bg) {
 window.exportPrint = async () => {
   const css = await fontCSS();
   const svg = printSVGString(printScene, { embedFontCSS: css });
-  await save("print/koebenhavn-print.svg", svg);
+  await save(`print/${CITY.slug}-print.svg`, svg);
   const big = await renderPNG(svg, 4800, null);
-  await save("print/koebenhavn-print-4800px.png", await new Promise((r) => big.toBlob(r, "image/png")));
+  await save(`print/${CITY.slug}-print-4800px.png`, await new Promise((r) => big.toBlob(r, "image/png")));
   const target = await renderPNG(svg, 1000, "#FFFFFF");
-  await save("print/koebenhavn-ar-maal.png", await new Promise((r) => target.toBlob(r, "image/png")));
+  await save(`print/${CITY.slug}-ar-maal.png`, await new Promise((r) => target.toBlob(r, "image/png")));
   return "ok";
 };
 window.exportMind = async () => {
   const { Compiler } = await import("https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js");
   const img = new Image();
-  img.src = "../print/koebenhavn-ar-maal.png?" + Date.now();
+  img.src = `../print/${CITY.slug}-ar-maal.png?` + Date.now();
   await img.decode();
   const compiler = new Compiler();
   await compiler.compileImageTargets([img], (p) => (document.title = "compile " + p.toFixed(0) + "%"));
   const data = await compiler.exportData();
-  await save("assets/target/koebenhavn.mind", new Blob([data]));
+  await save(`assets/target/${CITY.slug}.mind`, new Blob([data]));
   return "ok " + data.byteLength;
 };
 document.getElementById("saveSvg").onclick = () => window.exportPrint().catch((e) => log("FEJL " + e));
