@@ -459,43 +459,10 @@ export function createScene(container, { mode = "ar", base = true } = {}) {
     anim.flap = { g: flap, text: flapText, cx: 1435, cy: 563 };
 
     // Tekst under motivet
-    const city = E("text", { x: 66, y: 1110, "font-family": FONT, "font-size": 122, fill: INK, "letter-spacing": 5, rotate: "-3 2 -2 3 -1 2 -3 1 2" }, g);
+    const city = E("text", { x: 800, y: 1116, "font-family": FONT, "font-size": 132, fill: INK, "text-anchor": "middle", "letter-spacing": 6, rotate: "-3 2 -2 3 -1 2 -3 1 2" }, g);
     city.textContent = "KØBENHAVN";
-    const sub = E("text", { x: 72, y: 1172, "font-family": FONT, "font-size": 31, fill: INK, "letter-spacing": 6 }, g);
+    const sub = E("text", { x: 800, y: 1176, "font-family": FONT, "font-size": 36, fill: INK, "text-anchor": "middle", "letter-spacing": 7 }, g);
     sub.textContent = "MIKKELLER AIRWAYS · AFGANG CPH";
-  }
-
-  // ===== Boardingkort med QR-kode (i trykket) =====
-  // iPhone- og Android-kameraet genkender kun QR-koder, ikke tegninger. Koden her giver
-  // telefonens eget kamera et link til AR-siden; selve AR'en genkender derefter hele trykket.
-  // Koden står helt stille i alle lag og tegnes uden håndrystelse, så den altid kan scannes.
-  {
-    const g = layers.back.g;
-    E("path", { d: hand([[1128, 1000], [1590, 1000], [1590, 1196], [1128, 1196]], { step: 60, amt: 0.6 }), ...SHAPE, "stroke-width": 7 }, g);
-    E("path", { d: "M1378,1012 V1186", fill: "none", stroke: INK, "stroke-width": 5, "stroke-dasharray": "12 10", "stroke-linecap": "round" }, g);
-    const t1 = E("text", { x: 1252, y: 1072, "font-family": FONT, "font-size": 50, fill: INK, "text-anchor": "middle" }, g);
-    t1.textContent = "SCAN";
-    const t2 = E("text", { x: 1252, y: 1124, "font-family": FONT, "font-size": 50, fill: INK, "text-anchor": "middle" }, g);
-    t2.textContent = "& FLY";
-    const t3 = E("text", { x: 1252, y: 1168, "font-family": FONT, "font-size": 21, fill: INK, "text-anchor": "middle", "letter-spacing": 2 }, g);
-    t3.textContent = "MK 001 · CPH";
-    const M = QR_ROWS.length;
-    const mod = 5.2;
-    const x0 = 1396;
-    const y0 = 1098 - (M * mod) / 2;
-    let d = "";
-    QR_ROWS.forEach((row, r) => {
-      let c = 0;
-      while (c < M) {
-        if (row[c] === "1") {
-          let e = c;
-          while (e < M && row[e] === "1") e++;
-          d += `M${f(x0 + c * mod)},${f(y0 + r * mod)}h${f((e - c) * mod)}v${mod}h${f(-(e - c) * mod)}Z`;
-          c = e;
-        } else c++;
-      }
-    });
-    E("path", { d, fill: INK, "shape-rendering": "crispEdges" }, g);
   }
 
   // ===== LAG: rider (ladcykel, kuffert, øl og manden i regntøj) =====
@@ -560,8 +527,32 @@ export function createScene(container, { mode = "ar", base = true } = {}) {
     // ladkassen
     const boxPts = [[738, 698], [1126, 686], [1090, 880], [752, 880]];
     E("path", { d: hand(boxPts, { step: 60, amt: 1.1 }), ...SHAPE }, body);
-    E("path", { d: hand([[748, 760], [1112, 752]], { closed: false, step: 50, amt: 1 }), ...LINE, "stroke-width": 6 }, body);
-    E("path", { d: hand([[752, 822], [1100, 816]], { closed: false, step: 50, amt: 1 }), ...LINE, "stroke-width": 6 }, body);
+    // plankerne stopper omkring QR-mærket, så koden har hvid luft rundt om sig
+    E("path", { d: hand([[748, 760], [834, 758]], { closed: false, step: 40, amt: 0.8 }), ...LINE, "stroke-width": 6 }, body);
+    E("path", { d: hand([[1018, 755], [1112, 752]], { closed: false, step: 40, amt: 0.8 }), ...LINE, "stroke-width": 6 }, body);
+    E("path", { d: hand([[752, 822], [834, 821]], { closed: false, step: 40, amt: 0.8 }), ...LINE, "stroke-width": 6 }, body);
+    E("path", { d: hand([[1018, 818], [1100, 816]], { closed: false, step: 40, amt: 0.8 }), ...LINE, "stroke-width": 6 }, body);
+    // QR-koden er malet på ladkassen som et mærkat. iPhone- og Android-kameraet kan kun
+    // genkende QR-koder, så det er den, der giver link-pop-op'et; AR'en genkender hele tegningen.
+    // Den tegnes uden håndrystelse, så den altid kan scannes.
+    {
+      const M = QR_ROWS.length;
+      const mod = 4.6;
+      const x0 = 926 - (M * mod) / 2;
+      const y0 = 787 - (M * mod) / 2;
+      const qr = E("g", { fill: INK }, body);
+      QR_ROWS.forEach((row, r) => {
+        let c = 0;
+        while (c < M) {
+          if (row[c] === "1") {
+            let e = c;
+            while (e < M && row[e] === "1") e++;
+            E("rect", { x: f(x0 + c * mod), y: f(y0 + r * mod), width: f((e - c) * mod), height: f(mod + 0.4), rx: f(mod * 0.32) }, qr);
+            c = e;
+          } else c++;
+        }
+      });
+    }
     E("path", { d: hand([[738, 698], [1126, 686]], { closed: false, step: 50, amt: 1 }), ...LINE, "stroke-width": 14 }, body);
     // styr
     E("path", { d: hand([[744, 716], [704, 644], [664, 638]], { closed: false, step: 0, amt: 0.6 }), ...LINE, "stroke-width": 12 }, body);

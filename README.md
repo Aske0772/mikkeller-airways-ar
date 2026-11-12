@@ -2,7 +2,7 @@
 
 Hi-fi demo af t-shirten, hvor **selve trykket er AR-triggeren**. Husene får farve, regnen falder ud over t-shirten, skiltet bladrer destinationer, og flyet letter.
 
-**Forløbet:** Brugeren peger telefonens almindelige kamera på t-shirten. QR-koden i trykkets boardingkort ("SCAN & FLY") giver det velkendte link-pop-op. Et tryk åbner siden direkte i kameraet, og siden genkender hele tegningen og starter AR'en oven på trykket.
+**Forløbet:** Brugeren peger telefonens almindelige kamera på t-shirten. QR-koden, der er malet på ladcyklens kasse, giver det velkendte link-pop-op. Et tryk åbner siden direkte i kameraet, og siden genkender hele tegningen og starter AR'en oven på trykket.
 
 Hvorfor en QR-kode i trykket: iPhone- og Android-kameraet genkender kun QR-koder, ikke almindelige tegninger. Koden starter siden; selve AR'en følger tegningen.
 
@@ -28,14 +28,14 @@ Links: AR-kameraet er https://aske0772.github.io/mikkeller-airways-ar/ og protot
 
 1. Print `print/koebenhavn-print-4800px.png` på A4 på tværs, ca. 20–25 cm bredt, på mat papir.
 2. Tape det fladt på brystet af en t-shirt.
-3. Åbn telefonens kamera, peg på QR-koden i boardingkortet nederst til højre, og tryk på linket. Giv siden lov til at bruge kameraet.
+3. Åbn telefonens kamera, peg på QR-koden på ladcyklens kasse (ca. 20–30 cm væk), og tryk på linket. Giv siden lov til at bruge kameraet.
 4. Hold telefonen 30–60 cm fra trykket i godt lys. Tryk på **Lyd** for at få regn og fly med.
 
 ## Hvad er testet
 
 - Genkendelse (`tools/tracking-test.html`): trykket blev fundet i 5 af 5 testbilleder (lige på, drejet, skråt, langt væk, sløret med støj). Et andet motiv (Tokyo-stemplet) blev korrekt ikke genkendt.
 - Prototypen er gennemklikket i browseren.
-- QR-koden i trykket er afkodet til sidens adresse ved fem størrelser, ned til 56 pixels bred.
+- QR-koden på kassen er afkodet til sidens adresse ved seks størrelser, ned til 46 pixels bred, og drejet. Et meget sløret billede kunne ikke læses, så telefonen skal have fokus.
 - AR-kameraet med et rigtigt kamera på en telefon er **ikke testet endnu**.
 
 ## Kør lokalt
