@@ -10,6 +10,19 @@ const PX = 1000 / PRINT.w; // MindAR: målbilledets bredde = 1000 CSS-px
 const LAYER_PX = VIEW.w * PX; // AR-fladen er større end trykket
 const RESTART_AFTER = 4; // sekunder uden tryk, før forløbet starter forfra næste gang
 
+// Hukommelse: iPhone-Safari genindlæser siden (og spørger om kameraet igen), hvis den løber
+// tør for grafikhukommelse. Hvert lag tegnes derfor som et lille element og skaleres op i 3D.
+// Er siden lige blevet genindlæst under opstart, bruges "let"-tilstand: ét fladt lag.
+const store = {
+  get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
+  del(k) { try { sessionStorage.removeItem(k); } catch {} },
+};
+const lastStart = Number(store.get("kbh-start") || 0);
+const LITE = new URLSearchParams(location.search).has("let") || (lastStart && Date.now() - lastStart < 30000);
+const ELEM_PX = LITE ? 420 : 600; // elementets egen størrelse i CSS-px
+const UP = LAYER_PX / ELEM_PX; // opskalering i 3D, så trykket stadig dækker 1000 px
+
 // ---------- lyd (kræver et tryk på skærmen) ----------
 const sfx = {
   rain: new Audio("assets/audio/rain.mp3"),
@@ -65,17 +78,20 @@ async function start() {
 
     // Scenen bygges én gang; hvert lag får sit eget 3D-objekt på trykket.
     const holder = document.createElement("div");
-    holder.style.cssText = `position:absolute;left:-99999px;width:${LAYER_PX}px;height:${LAYER_PX}px`;
+    holder.style.cssText = `position:absolute;left:-99999px;width:${ELEM_PX}px;height:${ELEM_PX}px`;
     document.body.appendChild(holder);
     scene = createScene(holder, { mode: "ar", base: true });
-    scene.layers.forEach((L) => {
+    const makeObj = (svgs, depth) => {
       const wrap = document.createElement("div");
-      wrap.style.cssText = `width:${LAYER_PX}px;height:${LAYER_PX}px;position:relative;pointer-events:none`;
-      wrap.appendChild(L.svg);
+      wrap.style.cssText = `width:${ELEM_PX}px;height:${ELEM_PX}px;position:relative;pointer-events:none;overflow:visible`;
+      svgs.forEach((svg) => wrap.appendChild(svg));
       const obj = new CSS3DObject(wrap);
+      obj.scale.set(UP, UP, 1);
       anchor.group.add(obj);
-      objects.push({ obj, depth: L.depth });
-    });
+      objects.push({ obj, depth });
+    };
+    if (LITE) makeObj(scene.layers.map((L) => L.svg), 0);
+    else scene.layers.forEach((L) => makeObj([L.svg], L.depth));
     holder.remove();
 
     anchor.onTargetFound = () => {
@@ -104,6 +120,8 @@ async function start() {
     return;
   }
   $("#loading").hidden = true;
+  store.set("kbh-start", String(Date.now()));
+  setTimeout(() => store.del("kbh-start"), 15000); // kørte stabilt: næste besøg får fuld version
   clock.last = performance.now();
   mindar.renderer.setAnimationLoop(loop);
 }
@@ -113,7 +131,7 @@ function loop(now) {
   clock.last = now;
   if (clock.tracking) clock.t += dt;
   const t = clock.t;
-  scene.update(t);
+  if (clock.tracking) scene.update(t); // tegn kun, når trykket er i billedet
   const d = scene.depthAt(t);
   objects.forEach(({ obj, depth }) => (obj.position.z = depth * PX * d));
 
@@ -132,8 +150,8 @@ function loop(now) {
   cue("swish", CUES.planeSound, () => play("swish", 0.9));
   if (soundOn && t > CUES.rain) sfx.rain.volume = Math.min(0.55, (t - CUES.rain) * 0.4);
 
-  const { renderer, cssRenderer, scene: s3, cssScene, camera } = mindar;
-  renderer.render(s3, camera);
+  // WebGL-scenen er tom (alt er HTML-lag), så kun CSS-laget tegnes.
+  const { cssRenderer, cssScene, camera } = mindar;
   cssRenderer.render(cssScene, camera);
 }
 
