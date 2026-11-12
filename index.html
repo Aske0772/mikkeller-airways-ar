@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mikkeller Airways AR</title>
+<meta name="description" content="Hi-fi demo: København-t-shirten fra Mikkeller Airways, hvor selve trykket er AR-triggeren.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Work+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/demo.css">
+<style>
+  .page { min-height: 100%; display: grid; grid-template-columns: minmax(300px, 460px) auto; justify-content: center; align-items: center; gap: clamp(28px, 6vw, 96px); padding: 32px 24px; }
+  .info { max-width: 460px; }
+  .kicker { font-family: var(--display); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--red); margin: 0 0 10px; }
+  .info h1 { font-family: var(--display); font-weight: 400; font-size: clamp(34px, 4vw, 52px); line-height: 1.02; margin: 0 0 14px; letter-spacing: -0.01em; }
+  .lead { font-size: 18px; margin: 0 0 22px; color: var(--page-muted); }
+  .lead strong { color: var(--page-text); }
+  .steps { list-style: none; margin: 0 0 22px; padding: 0; counter-reset: s; }
+  .steps li { counter-increment: s; }
+  .steps button { width: 100%; text-align: left; display: grid; grid-template-columns: 34px 1fr; gap: 2px 12px; padding: 11px 12px; border: 0; border-radius: 14px; background: transparent; color: inherit; }
+  .steps button::before { content: counter(s); grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; box-shadow: inset 0 0 0 2px currentColor; opacity: 0.45; }
+  .steps b { font-size: 15.5px; }
+  .steps span { font-size: 14px; color: var(--page-muted); line-height: 1.4; }
+  .steps button[aria-current="step"] { background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+  .steps button[aria-current="step"]::before { opacity: 1; background: var(--page-text); color: var(--page); box-shadow: none; }
+  .steps button:hover { background: var(--card); }
+  .trigger { display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--line); font-size: 14px; color: var(--page-muted); }
+  .trigger img { width: 92px; height: auto; border-radius: 6px; background: #fff; flex: none; box-shadow: 0 0 0 1px var(--line); }
+  .trigger b { color: var(--page-text); display: block; font-size: 15px; margin-bottom: 2px; }
+  .live { margin-top: 12px; display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--line); font-size: 14px; color: var(--page-muted); }
+  .live b { color: var(--page-text); display: block; font-size: 15px; margin-bottom: 2px; }
+  .live a { color: var(--page-text); font-weight: 700; }
+  .qr-box { flex: none; width: 92px; height: 92px; background: #fff; border-radius: 8px; padding: 6px; }
+  .qr-box img, .qr-box canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
+
+  /* ---------- telefonen ---------- */
+  .phone-wrap { width: calc(390px * var(--s, 1) + 24px * var(--s, 1)); height: calc(844px * var(--s, 1) + 24px * var(--s, 1)); }
+  .phone { width: 414px; height: 868px; transform: scale(var(--s, 1)); transform-origin: 0 0; border-radius: 64px; background: #121212; padding: 12px; box-shadow: 0 0 0 2px #2a2a2a, 0 40px 80px rgba(0, 0, 0, 0.35); position: relative; }
+  .screen { position: relative; width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: #000; isolation: isolate; color: var(--ink); }
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 120px; height: 34px; border-radius: 20px; background: #000; z-index: 50; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 34px 0 40px; font: 600 16px/1 var(--body); color: #fff; z-index: 40; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .screen[data-step="open"] .status, .screen[data-step="boarding"] .status, .screen[data-step="passport"] .status { color: var(--ink); text-shadow: none; }
+  .view { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
+  .view.on { opacity: 1; pointer-events: auto; }
+
+  /* kamera */
+  .cam { overflow: hidden; background: #8d6a49; }
+  .cam::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,0.38)); z-index: 5; }
+  .wood { position: absolute; inset: -60px; background:
+      repeating-linear-gradient(90deg, rgba(60,35,15,0.0) 0 118px, rgba(60,35,15,0.35) 118px 121px),
+      repeating-linear-gradient(90deg, rgba(255,230,190,0.05) 0 7px, rgba(60,35,15,0.05) 7px 15px, rgba(255,230,190,0.04) 15px 29px),
+      linear-gradient(180deg, #a98159, #8a6443 60%, #7a5638); }
+  .world { position: absolute; left: 50%; top: 50%; width: 640px; height: 704px; margin: -300px 0 0 -320px; will-change: transform; }
+  .tee { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 18px 22px rgba(30,15,5,0.45)); }
+  .print-slot, .ar-slot { position: absolute; left: 108.6px; top: 54.4px; width: 422.4px; height: 422.4px; pointer-events: none; }
+  .print-slot { mix-blend-mode: multiply; opacity: 0.94; filter: blur(0.25px) contrast(1.05); }
+  .ar-slot { opacity: 0; transition: opacity 0.45s ease; }
+  .print-slot { transition: opacity 0.45s ease; }
+  .ar-live .print-slot { opacity: 0; }
+  .ar-slot.on { opacity: 1; }
+  .fabric { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; opacity: 0.5; }
+  .bracket { position: absolute; width: 30px; height: 30px; border: 4px solid #fff; border-radius: 4px; transition: all 0.42s cubic-bezier(0.3, 1.3, 0.5, 1); filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); z-index: 3; }
+  .bracket.tl { border-right: 0; border-bottom: 0; } .bracket.tr { border-left: 0; border-bottom: 0; }
+  .bracket.bl { border-right: 0; border-top: 0; } .bracket.br { border-left: 0; border-top: 0; }
+  .scanning .bracket { animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+  .locked .bracket { border-color: var(--yellow); }
+  .locked.ar-live .bracket { opacity: 0; transition-delay: 0.6s; }
+  .cam-hint { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); z-index: 10; background: rgba(1,1,3,0.72); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14.5px; font-weight: 500; white-space: nowrap; backdrop-filter: blur(8px); transition: opacity 0.3s, transform 0.3s; }
+  .chip { position: absolute; left: 50%; top: 66px; transform: translate(-50%, -12px); opacity: 0; z-index: 10; display: flex; align-items: center; gap: 8px; background: var(--yellow); color: var(--ink); padding: 9px 15px 9px 10px; border-radius: 999px; font-weight: 700; font-size: 14px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,0.25); transition: all 0.35s cubic-bezier(0.3, 1.3, 0.5, 1); }
+  .chip i { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--yellow); display: grid; place-items: center; font-style: normal; font-size: 13px; }
+  .chip.on { opacity: 1; transform: translate(-50%, 0); }
+  .cam-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 112px; z-index: 10; display: flex; align-items: center; justify-content: center; gap: 46px; padding-bottom: 18px; }
+  .round { width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(1,1,3,0.55); color: #fff; display: grid; place-items: center; backdrop-filter: blur(8px); }
+  .round svg { width: 22px; height: 22px; }
+  .shutter { width: 70px; height: 70px; border-radius: 50%; border: 4px solid #fff; background: transparent; padding: 4px; }
+  .shutter::after { content: ""; display: block; width: 100%; height: 100%; border-radius: 50%; background: #fff; }
+  .sheet { position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 20; background: var(--paper); border-radius: 30px; padding: 20px 20px 18px; box-shadow: 0 18px 50px rgba(0,0,0,0.35); transform: translateY(130%); transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.05); }
+  .sheet.on { transform: none; }
+  .sheet h3 { margin: 0 0 4px; font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.1; }
+  .sheet p { margin: 0 0 14px; font-size: 14.5px; color: #3d382e; }
+  .sheet .btn { width: 100%; }
+
+  /* mærket */
+  .tag-view { background: #ece9e3; }
+  .knit { position: absolute; inset: 0; background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.035) 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.025) 0 1px, transparent 1px 3px),
+      radial-gradient(100% 70% at 50% 0%, #f7f6f2, #dedad2); }
+  .rib { position: absolute; left: -40px; right: -40px; top: -70px; height: 200px; border-radius: 0 0 50% 50%; background: repeating-linear-gradient(90deg, #e9e6df 0 4px, #d7d3ca 4px 7px); box-shadow: 0 10px 24px rgba(0,0,0,0.12); }
+  .label { position: absolute; left: 50%; top: 168px; width: 232px; margin-left: -116px; background: var(--paper); border-radius: 4px; padding: 20px 18px 16px; text-align: center; box-shadow: 0 2px 0 #d8cdb4, 0 14px 26px rgba(0,0,0,0.18); transform: rotate(-2deg); background-image: repeating-linear-gradient(0deg, rgba(1,1,3,0.035) 0 1px, transparent 1px 3px); }
+  .label::before { content: ""; position: absolute; left: 50%; top: -30px; width: 160px; height: 34px; margin-left: -80px; background: inherit; filter: brightness(0.95); border-radius: 3px 3px 0 0; z-index: -1; }
+  .label .lw { font-family: var(--display); font-size: 26px; line-height: 0.95; letter-spacing: 0.04em; }
+  .label .ls { font-size: 10.5px; font-weight: 700; letter-spacing: 0.22em; margin: 6px 0 12px; }
+  .label .qr { width: 150px; height: 150px; margin: 0 auto; background: #fff; padding: 8px; position: relative; }
+  .label .qr img, .label .qr canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
+  .label .lc { font-size: 10px; letter-spacing: 0.08em; margin-top: 12px; line-height: 1.5; color: #3d382e; }
+  .qr-find { position: absolute; inset: -10px; border: 4px solid var(--yellow); border-radius: 12px; opacity: 0; transform: scale(1.25); transition: all 0.35s cubic-bezier(0.3, 1.3, 0.5, 1); }
+  .tag-view.found .qr-find { opacity: 1; transform: none; }
+  .banner { position: absolute; left: 12px; right: 12px; top: 58px; z-index: 12; display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 22px; background: rgba(250,250,250,0.92); backdrop-filter: blur(14px); box-shadow: 0 10px 28px rgba(0,0,0,0.2); transform: translateY(-140%); transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.05); border: 0; text-align: left; color: var(--ink); }
+  .tag-view.found .banner { transform: none; }
+  .banner .ic { width: 40px; height: 40px; border-radius: 10px; background: var(--ink); color: #fff; display: grid; place-items: center; flex: none; }
+  .banner .ic svg { width: 26px; transform: rotate(-20deg); }
+  .banner b { display: block; font-size: 15px; }
+  .banner span { font-size: 13px; color: #555; }
+  .tag-note { position: absolute; left: 24px; right: 24px; bottom: 140px; text-align: center; font-size: 14px; color: #4a463e; }
+
+  /* webside */
+  .open-view { background: var(--paper); display: flex; flex-direction: column; padding: 86px 28px 40px; }
+  .open-view .ok { font-family: var(--display); font-size: 13px; letter-spacing: 0.16em; color: var(--red); margin: 0 0 8px; }
+  .open-view h2 { font-family: var(--display); font-weight: 400; font-size: 46px; line-height: 0.98; margin: 0 0 16px; }
+  .open-view p { font-size: 16.5px; margin: 0 0 12px; color: #2f2b23; }
+  .open-art { flex: 1; display: grid; place-items: center; }
+  .open-art img { width: 100%; max-width: 330px; border-radius: 14px; box-shadow: 0 0 0 3px var(--ink); background: #fff; transform: rotate(-2deg); }
+  .open-view .btn { width: 100%; }
+  .open-view small { display: block; text-align: center; margin-top: 10px; color: #6b6352; font-size: 12.5px; }
+
+  .restart-hint { position: absolute; }
+  @media (max-width: 860px) {
+    .page { grid-template-columns: 1fr; justify-items: center; padding: 20px 16px 40px; }
+    .info { order: 2; }
+    .phone-wrap { order: 1; }
+  }
+  @media (max-width: 520px) {
+    .page { padding: 0 0 32px; gap: 20px; }
+    .info { padding: 0 16px; }
+    .phone-wrap { width: 100vw; height: 100dvh; }
+    .phone { transform: none; width: 100vw; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none; background: #000; }
+    .screen { width: 390px; height: 844px; border-radius: 0; transform: scale(var(--ms, 1)); transform-origin: 0 0; }
+    .island { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .view, .bracket, .chip, .sheet, .banner { transition-duration: 0.01s; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="info" aria-labelledby="h">
+    <p class="kicker">Mikkeller Airways · AR-merch</p>
+    <h1 id="h">København: Afgang</h1>
+    <p class="lead"><strong>Trykket på t-shirten er selve triggeren.</strong> Kameraet genkender tegningen og vækker den til live. QR-koden i nakken åbner bare kameraet første gang.</p>
+    <ol class="steps" id="steps">
+      <li><button data-go="tag"><b>Mærket i nakken</b><span>Første gang: QR-koden åbner Mikkeller Airways-kameraet i browseren. Ingen app.</span></button></li>
+      <li><button data-go="open"><b>Kameraet åbner</b><span>Én side, der kan genkende alle fem bytryk i serien.</span></button></li>
+      <li><button data-go="camera"><b>Trykket vågner</b><span>Tegningen findes. Husene får farve, regnen falder ud over t-shirten, skiltet bladrer, og flyet letter.</span></button></li>
+      <li><button data-go="boarding"><b>Boardingkort</b><span>Pointen: Mikkeller findes i hele verden.</span></button></li>
+      <li><button data-go="passport"><b>Stempel i passet</b><span>Ét stempel pr. by. Saml alle fem.</span></button></li>
+    </ol>
+    <div class="trigger">
+      <img src="print/koebenhavn-ar-maal.png" alt="Trykket, som kameraet genkender">
+      <div><b>Triggeren er tegningen</b>Kameraet leder efter netop dette tryk. Det sorte-hvide motiv har masser af hjørner og kanter, som gør det let at genkende.</div>
+    </div>
+    <div class="live">
+      <div class="qr-box" id="liveQr" aria-label="QR-kode til live-AR"></div>
+      <div><b>Prøv det i virkeligheden</b>Åbn <a href="live.html" id="liveLink">live-AR</a> på din telefon, og peg den på trykket: <a href="print/koebenhavn-ar-maal.png" target="_blank">trykfilen</a> printet eller på en anden skærm.</div>
+    </div>
+  </section>
+
+  <div class="phone-wrap" id="phoneWrap">
+    <div class="phone">
+      <div class="screen" id="screen" data-step="tag">
+        <div class="island"></div>
+        <div class="status"><span id="clock">9:41</span><span>●●● ▮</span></div>
+
+        <!-- 1: mærket -->
+        <section class="view tag-view" id="v-tag" aria-label="Kamera på mærket">
+          <div class="knit"></div><div class="rib"></div>
+          <button class="banner" id="banner" type="button">
+            <span class="ic"><svg viewBox="-50 -48 104 96"><path d="M-40,0 C-40,-9 -30,-11 -20,-11 L30,-11 C44,-11 52,-5 52,0 C52,5 44,11 30,11 L-20,11 C-30,11 -40,9 -40,0Z M2,-8 L-18,-44 L-4,-44 L26,-8Z M2,8 L-18,44 L-4,44 L26,8Z M-34,-4 L-46,-26 L-36,-26 L-22,-4Z" fill="currentColor"/></svg></span>
+            <span><b>Mikkeller Airways</b><span>Åbn AR-kameraet</span></span>
+          </button>
+          <div class="label">
+            <div class="lw">MIKKELLER<br>AIRWAYS</div>
+            <div class="ls">SCAN · FLY MED</div>
+            <div class="qr" id="tagQr"><div class="qr-find"></div></div>
+            <div class="lc">KØBENHAVN · CPH<br>100% ØKOLOGISK BOMULD · 40°</div>
+          </div>
+          <p class="tag-note">Kun første gang. Derefter er kameraet åbent, og trykket gør resten.</p>
+        </section>
+
+        <!-- 2: webside -->
+        <section class="view open-view" id="v-open" aria-label="Mikkeller Airways AR-kamera">
+          <p class="ok">Mikkeller Airways</p>
+          <h2>Velkommen ombord</h2>
+          <p>Peg kameraet mod tegningen på din t-shirt. Kameraet genkender trykket, og så letter du.</p>
+          <div class="open-art"><img src="print/koebenhavn-ar-maal.png" alt="København-trykket"></div>
+          <button class="btn btn-primary" id="startCam">Åbn kameraet</button>
+          <small>Kameraet bruges kun her på siden. Skru op for lyden.</small>
+        </section>
+
+        <!-- 3: kamera på trykket -->
+        <section class="view cam" id="v-camera" aria-label="Kamera på t-shirten">
+          <div class="wood"></div>
+          <div class="world" id="world">
+            <svg class="tee" viewBox="0 0 1000 1100" aria-hidden="true">
+              <defs>
+                <linearGradient id="teeG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ecebe7"/></linearGradient>
+                <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter>
+                <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.22 0"/></filter>
+                <clipPath id="teeClip"><path id="teeShape" d="M352,92 C398,140 602,140 648,92 L826,150 C880,206 940,268 984,336 L862,428 L800,368 C800,560 806,820 812,1044 C640,1066 360,1066 188,1044 C194,820 200,560 200,368 L138,428 L16,336 C60,268 120,206 174,150 Z"/></clipPath>
+              </defs>
+              <use href="#teeShape" fill="url(#teeG)"/>
+              <g clip-path="url(#teeClip)">
+                <path d="M200,380 C260,600 230,850 260,1060" stroke="#e7e5df" stroke-width="40" fill="none" filter="url(#soft)"/>
+                <path d="M800,380 C760,620 790,840 760,1060" stroke="#e7e5df" stroke-width="44" fill="none" filter="url(#soft)"/>
+                <path d="M330,860 C460,890 560,875 700,900" stroke="#ecebe6" stroke-width="26" fill="none" filter="url(#soft)"/>
+                <path d="M150,170 C230,250 220,320 200,380" stroke="#dcd9d2" stroke-width="30" fill="none" filter="url(#soft)"/>
+                <path d="M850,170 C770,250 780,320 800,380" stroke="#dcd9d2" stroke-width="30" fill="none" filter="url(#soft)"/>
+                <rect width="1000" height="1100" filter="url(#grain)"/>
+              </g>
+              <path d="M352,92 C398,140 602,140 648,92 C640,128 600,166 500,166 C400,166 360,128 352,92Z" fill="#e4e2dc"/>
+              <path d="M360,104 C410,150 590,150 640,104" stroke="#cfccc5" stroke-width="3" fill="none"/>
+              <path d="M140,410 L260,330 M860,410 L740,330" stroke="#e6e4de" stroke-width="3" fill="none"/>
+              <path d="M190,1030 C360,1050 640,1050 810,1030" stroke="#dedbd4" stroke-width="3" fill="none"/>
+            </svg>
+            <div class="print-slot" id="printSlot"></div>
+            <div class="ar-slot" id="arSlot"></div>
+            <div class="bracket tl"></div><div class="bracket tr"></div><div class="bracket bl"></div><div class="bracket br"></div>
+          </div>
+          <div class="chip" id="chip"><i>✓</i>Tryk fundet: København</div>
+          <div class="cam-hint" id="camHint">Peg kameraet mod trykket</div>
+          <div class="cam-bar">
+            <button class="round" id="mute" aria-label="Lyd til eller fra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="muteWave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+            <button class="shutter" aria-label="Optag"></button>
+            <button class="round" id="replay" aria-label="Afspil igen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button>
+          </div>
+          <div class="sheet" id="sheet">
+            <h3>Du er tjekket ind</h3>
+            <p>Fra København til resten af verden. Dit boardingkort er klar.</p>
+            <button class="btn btn-primary" id="toBoarding">Hent boardingkort</button>
+          </div>
+        </section>
+
+        <section class="view" id="v-boarding" aria-label="Boardingkort"></section>
+        <section class="view" id="v-passport" aria-label="Mikkeller-pas"></section>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module" src="js/prototype.js"></script>
+</body>
+</html>

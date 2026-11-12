@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eksport af trykfil og AR-mål</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: #EEE5D2; color: #010103; padding: 20px; }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .box { background: #fff; width: 640px; max-width: 100%; aspect-ratio: 4/3; position: relative; overflow: hidden; outline: 1px solid #0002; }
+  .box.big { aspect-ratio: 1; width: 640px; background: #f4f1ea; }
+  .stage { position: absolute; }
+  button { font: inherit; padding: 8px 14px; margin: 4px 4px 4px 0; }
+  #log { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Eksport: København-tryk</h1>
+<p>Venstre: trykket (statisk). Højre: AR-laget over hele AR-fladen. Træk i tiden for at se animationen.</p>
+<div class="row">
+  <div class="box" id="printBox"></div>
+  <div class="box big" id="arBox"></div>
+</div>
+<p><input id="t" type="range" min="0" max="14" step="0.02" value="0" style="width:640px"> <span id="tv">0.00 s</span> <button id="play">Afspil</button></p>
+<p>
+  <button id="saveSvg">Gem trykfil (SVG + PNG)</button>
+  <button id="saveMind">Lav AR-mål (.mind)</button>
+</p>
+<div id="log"></div>
+<script type="module">
+import { createScene, printSVGString, PRINT, VIEW } from "../js/scene.js";
+
+const log = (m) => (document.getElementById("log").textContent += m + "\n");
+await document.fonts.load("40px 'Bowlby One'");
+
+// Trykket: viser kun 0..1600 x 0..1200 af AR-fladen
+const pb = document.getElementById("printBox");
+const ps = document.createElement("div");
+ps.className = "stage";
+pb.appendChild(ps);
+const printScene = createScene(ps, { mode: "print" });
+function fitPrint() {
+  const s = pb.clientWidth / PRINT.w;
+  const size = VIEW.w * s;
+  Object.assign(ps.style, { width: size + "px", height: size + "px", left: VIEW.x * s + "px", top: VIEW.y * s + "px" });
+  printScene.root.style.width = printScene.root.style.height = "100%";
+}
+fitPrint();
+
+const ab = document.getElementById("arBox");
+const as = document.createElement("div");
+as.className = "stage";
+Object.assign(as.style, { inset: 0 });
+ab.appendChild(as);
+const arScene = createScene(as, { mode: "ar" });
+arScene.root.style.width = arScene.root.style.height = "100%";
+
+const slider = document.getElementById("t");
+const tv = document.getElementById("tv");
+let playing = false, t0 = 0;
+function show(t) { arScene.update(t); tv.textContent = t.toFixed(2) + " s"; }
+slider.oninput = () => { playing = false; show(+slider.value); };
+document.getElementById("play").onclick = () => { playing = true; t0 = performance.now() - +slider.value * 1000; requestAnimationFrame(loop); };
+function loop(now) { if (!playing) return; const t = (now - t0) / 1000; slider.value = t % 14; show(t % 14); requestAnimationFrame(loop); }
+show(0);
+
+async function fontCSS() {
+  const css = await (await fetch("https://fonts.googleapis.com/css2?family=Bowlby+One&display=swap")).text();
+  const url = css.match(/url\((https:[^)]+)\)/)[1];
+  const buf = await (await fetch(url)).arrayBuffer();
+  let bin = ""; const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return `@font-face{font-family:'Bowlby One';src:url(data:font/woff2;base64,${btoa(bin)}) format('woff2');}`;
+}
+async function save(file, data) {
+  const r = await fetch("/save?file=" + encodeURIComponent(file), { method: "POST", body: data });
+  log(await r.text());
+}
+async function renderPNG(svgStr, width, bg) {
+  const img = new Image();
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgStr);
+  await img.decode();
+  const c = document.createElement("canvas");
+  c.width = width; c.height = Math.round(width * PRINT.h / PRINT.w);
+  const ctx = c.getContext("2d");
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height); }
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+window.exportPrint = async () => {
+  const css = await fontCSS();
+  const svg = printSVGString(printScene, { embedFontCSS: css });
+  await save("print/koebenhavn-print.svg", svg);
+  const big = await renderPNG(svg, 4800, null);
+  await save("print/koebenhavn-print-4800px.png", await new Promise((r) => big.toBlob(r, "image/png")));
+  const target = await renderPNG(svg, 1000, "#FFFFFF");
+  await save("print/koebenhavn-ar-maal.png", await new Promise((r) => target.toBlob(r, "image/png")));
+  return "ok";
+};
+window.exportMind = async () => {
+  const { Compiler } = await import("https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js");
+  const img = new Image();
+  img.src = "../print/koebenhavn-ar-maal.png?" + Date.now();
+  await img.decode();
+  const compiler = new Compiler();
+  await compiler.compileImageTargets([img], (p) => (document.title = "compile " + p.toFixed(0) + "%"));
+  const data = await compiler.exportData();
+  await save("assets/target/koebenhavn.mind", new Blob([data]));
+  return "ok " + data.byteLength;
+};
+document.getElementById("saveSvg").onclick = () => window.exportPrint().catch((e) => log("FEJL " + e));
+document.getElementById("saveMind").onclick = () => window.exportMind().catch((e) => log("FEJL " + e));
+window.__scenes = { printScene, arScene };
+</script>
+</body>
+</html>

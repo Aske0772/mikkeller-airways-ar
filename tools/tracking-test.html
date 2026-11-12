@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>Genkendelsestest</title>
+<style>body{font:14px system-ui;margin:16px;background:#eee} canvas{max-width:360px;display:block;margin:8px 0;outline:1px solid #0003} #log{white-space:pre-wrap;font-family:ui-monospace,monospace}</style>
+</head>
+<body>
+<h1>Kan kameraet genkende trykket?</h1>
+<p>Tester MindAR's genkendelse på "fotos" af trykket: drejet, skråt, mindre og med støj, som et telefonkamera ville se det.</p>
+<div id="log"></div>
+<script type="module">
+import { Controller } from "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js";
+const log = (m) => { document.getElementById("log").textContent += m + "\n"; window.__log = document.getElementById("log").textContent; };
+window.__done = false;
+
+const img = new Image();
+img.src = "../print/koebenhavn-ar-maal.png";
+await img.decode();
+
+// Lav et "kamerabillede": træbord, hvid t-shirt, trykket i perspektiv.
+function shot({ rot = 0, scale = 0.7, skew = 0, dx = 0, dy = 0, noise = 10, blur = 0 }) {
+  const W = 640, H = 480;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = "#9a7350"; x.fillRect(0, 0, W, H);
+  x.fillStyle = "#f1f0ec"; x.fillRect(40, 10, W - 80, H - 20);
+  x.save();
+  x.translate(W / 2 + dx, H / 2 + dy);
+  x.rotate(rot);
+  x.transform(1, 0, skew, 1, 0, 0);
+  if (blur) x.filter = `blur(${blur}px)`;
+  const w = W * scale;
+  x.drawImage(img, -w / 2, -w * 0.375, w, w * 0.75);
+  x.restore();
+  const d = x.getImageData(0, 0, W, H);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * noise;
+    d.data[i] += n; d.data[i + 1] += n; d.data[i + 2] += n;
+  }
+  x.putImageData(d, 0, 0);
+  document.body.appendChild(c);
+  return c;
+}
+
+const cases = [
+  ["lige på", { rot: 0, scale: 0.75 }],
+  ["drejet 12°", { rot: 0.21, scale: 0.7 }],
+  ["skråt (perspektiv)", { rot: -0.08, scale: 0.7, skew: 0.25 }],
+  ["langt væk (40 %)", { rot: 0.05, scale: 0.4, dx: 60 }],
+  ["sløret + støj", { rot: 0.1, scale: 0.65, blur: 1.2, noise: 30 }],
+];
+
+const controller = new Controller({ inputWidth: 640, inputHeight: 480, maxTrack: 1 });
+log("indlæser AR-mål …");
+await controller.addImageTargets("../assets/target/koebenhavn.mind");
+log("AR-mål indlæst. Tester …");
+window.__results = [];
+for (const [name, opt] of cases) {
+  const c = shot(opt);
+  const t0 = performance.now();
+  const { featurePoints } = await controller.detect(c);
+  const r = await controller.match(featurePoints, 0);
+  const ms = Math.round(performance.now() - t0);
+  const ok = !!(r && r.modelViewTransform);
+  window.__results.push({ name, ok, features: featurePoints.length, ms });
+  log(`${ok ? "FUNDET " : "ikke fundet"}  ${name}  (${featurePoints.length} punkter, ${ms} ms)`);
+  await new Promise((res) => setTimeout(res, 50));
+}
+// Kontrol: et andet motiv (Tokyo-stemplet) må IKKE blive genkendt som København.
+{
+  const other = new Image();
+  other.src = "../assets/stamps/tyo.png";
+  await other.decode();
+  const c = document.createElement("canvas");
+  c.width = 640; c.height = 480;
+  const x = c.getContext("2d");
+  x.fillStyle = "#f1f0ec"; x.fillRect(0, 0, 640, 480);
+  x.drawImage(other, 120, 40, 400, 400 * other.height / other.width);
+  document.body.appendChild(c);
+  const { featurePoints } = await controller.detect(c);
+  const r = await controller.match(featurePoints, 0);
+  const ok = !!(r && r.modelViewTransform);
+  window.__results.push({ name: "kontrol: andet motiv", ok });
+  log(`${ok ? "FEJL: genkendt" : "korrekt ikke genkendt"}  kontrol: Tokyo-stempel (${featurePoints.length} punkter)`);
+}
+window.__done = true;
+log("færdig");
+</script>
+</body>
+</html>
