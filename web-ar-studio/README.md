@@ -13,7 +13,7 @@ Samme København-AR, bygget i Web-AR.Studio, så den på iPhone åbner som App C
 | Fil | Hvad |
 | --- | --- |
 | `trigger-koebenhavn.png` | Trykket som trigger (2400 px, hvid baggrund). Platformens analyse: "excellent trigger". |
-| `koebenhavn-ar-magenta.mp4` | AR-animationen som video på magenta baggrund (1440 × 1110, 30 fps, 13 sek., med regn og fly-lyd). Platformen fjerner magenta (chroma key #FF00FF). |
+| `koebenhavn-ar-magenta.mp4` | AR-animationen som video på magenta baggrund (1152 × 888, 30 fps, 13 sek., ca. 3,4 MB). Platformen fjerner magenta (chroma key #FF00FF). **Uden lyd:** iPhone starter ikke en video med lyd af sig selv, og videoen stod stille i App Clip'en med lyd på. |
 | `frames/` | De 390 enkeltbilleder videoen er lavet af. Laves igen med `tools/render-video.html`. |
 
 ## Placering i editoren
