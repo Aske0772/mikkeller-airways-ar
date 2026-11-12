@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>T-shirt-mockup</title>
+<style>body{margin:12px;background:#ddd;font:13px system-ui} canvas{max-width:600px;display:block}</style>
+</head>
+<body>
+<p>Hvid t-shirt med København-trykket. Trykket er den præcise trykfil, så QR-koden og AR-genkendelsen også virker på mockuppen.</p>
+<canvas id="c"></canvas>
+<script type="module">
+// Fladt lagt hvid t-shirt (samme snit som i prototypen), tegnet i 3× opløsning.
+const S = 3;
+const W = 1000 * S, H = 1100 * S;
+const TEE = "M352,92 C398,140 602,140 648,92 L826,150 C880,206 940,268 984,336 L862,428 L800,368 C800,560 806,820 812,1044 C640,1066 360,1066 188,1044 C194,820 200,560 200,368 L138,428 L16,336 C60,268 120,206 174,150 Z";
+const NECK = "M352,92 C398,140 602,140 648,92 C640,128 600,166 500,166 C400,166 360,128 352,92Z";
+// Trykket: 54 % af t-shirtens bredde (ca. 28 cm på en voksen-t-shirt), placeret på brystet.
+const PRINT = { x: 230, y: 235, w: 540 };
+
+const c = document.getElementById("c");
+c.width = W + 400;
+c.height = H + 400;
+const ctx = c.getContext("2d");
+
+function noise(w, h, alpha) {
+  const n = document.createElement("canvas");
+  n.width = w; n.height = h;
+  const nx = n.getContext("2d");
+  const d = nx.createImageData(w, h);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const v = 200 + Math.random() * 55;
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+    d.data[i + 3] = alpha;
+  }
+  nx.putImageData(d, 0, 0);
+  return n;
+}
+
+const img = new Image();
+img.src = "../print/koebenhavn-print-4800px.png?" + Date.now();
+await img.decode();
+
+// baggrund: lys, neutral studieflade
+const bg = ctx.createRadialGradient(c.width / 2, c.height * 0.45, 200, c.width / 2, c.height / 2, c.width * 0.75);
+bg.addColorStop(0, "#F3F1EC");
+bg.addColorStop(1, "#DEDAD2");
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, c.width, c.height);
+
+ctx.save();
+ctx.translate(200, 200);
+ctx.scale(S, S);
+const tee = new Path2D(TEE);
+
+// skygge under t-shirten
+ctx.save();
+ctx.filter = "blur(18px)";
+ctx.fillStyle = "rgba(60,50,35,0.22)";
+ctx.translate(6, 14);
+ctx.fill(tee);
+ctx.restore();
+
+// stoffet
+const g = ctx.createLinearGradient(0, 0, 1000, 1100);
+g.addColorStop(0, "#FFFFFF");
+g.addColorStop(1, "#F1F0EC");
+ctx.fillStyle = g;
+ctx.fill(tee);
+
+ctx.save();
+ctx.clip(tee);
+// bløde folder
+ctx.filter = "blur(16px)";
+ctx.lineCap = "round";
+const fold = (d, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke(new Path2D(d)); };
+fold("M205,390 C255,600 232,850 262,1060", 46, "rgba(150,145,135,0.16)");
+fold("M795,390 C760,620 790,840 760,1060", 50, "rgba(150,145,135,0.18)");
+fold("M150,175 C230,255 222,322 204,385", 30, "rgba(150,145,135,0.14)");
+fold("M850,175 C770,255 778,322 796,385", 30, "rgba(150,145,135,0.14)");
+fold("M420,190 C440,260 430,330 445,380", 18, "rgba(255,255,255,0.9)");
+ctx.filter = "none";
+
+// trykket: blæk på stoffet (multiplicér), lidt blødt i kanten som rigtig serigrafi
+const ph = PRINT.w * (img.naturalHeight / img.naturalWidth);
+ctx.globalCompositeOperation = "multiply";
+ctx.globalAlpha = 0.96;
+ctx.filter = "blur(0.35px)";
+ctx.drawImage(img, PRINT.x, PRINT.y, PRINT.w, ph);
+ctx.filter = "none";
+ctx.globalAlpha = 1;
+
+// stofstruktur over det hele
+ctx.globalAlpha = 0.5;
+ctx.drawImage(noise(500, 550, 40), 0, 0, 1000, 1100);
+ctx.globalAlpha = 1;
+ctx.globalCompositeOperation = "source-over";
+ctx.restore();
+
+// halsrib og sømme
+ctx.fillStyle = "#E7E5DF";
+ctx.fill(new Path2D(NECK));
+ctx.strokeStyle = "#D2CFC7";
+ctx.lineWidth = 2.5;
+ctx.stroke(new Path2D("M362,104 C410,152 590,152 638,104"));
+ctx.stroke(new Path2D("M362,118 C410,166 590,166 638,118"));
+ctx.lineWidth = 2;
+ctx.stroke(new Path2D("M140,410 L262,330 M860,410 L738,330"));
+ctx.stroke(new Path2D("M190,1028 C360,1048 640,1048 810,1028"));
+ctx.strokeStyle = "rgba(0,0,0,0.06)";
+ctx.lineWidth = 2;
+ctx.stroke(tee);
+ctx.restore();
+
+window.save = async () => {
+  const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+  const res = await fetch("/save?file=print/koebenhavn-tshirt-mockup.png", { method: "POST", body: blob });
+  return await res.text();
+};
+window.__ready = true;
+</script>
+</body>
+</html>
